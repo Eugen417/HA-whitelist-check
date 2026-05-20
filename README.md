@@ -1,9 +1,13 @@
 # 🌐 White List Check for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![ha_badge](https://img.shields.io/badge/Home%20Assistant-2026.5.1+-blue.svg?style=for-the-badge)](https://www.home-assistant.io/)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/Eugen417/HA-whitelist-check?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/releases)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue.svg?style=for-the-badge&logo=home-assistant)](https://www.home-assistant.io/)
+[![GitHub Stars](https://img.shields.io/github/stars/Eugen417/HA-whitelist-check.svg?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/stargazers)
+[![License](https://img.shields.io/github/license/Eugen417/HA-whitelist-check.svg?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/blob/main/LICENSE)
+[![HA Validation](https://img.shields.io/github/actions/workflow/status/Eugen417/HA-whitelist-check/validate.yml?style=for-the-badge&label=HA%20Validation)](https://github.com/Eugen417/HA-whitelist-check/actions)
 
-Мощный и легкий компонент для Home Assistant, предназначенный для мониторинга доступности сетевых узлов, API-сервисов, IoT-облаков и транзитных шлюзов. 
+Мощный и легкий компонент для Home Assistant, предназначенный для мониторинга доступности сетевых узлов, API-сервисов, IoT-облаков и транзитных шлюзов.
 
 Идеально подходит для сложных сетей с VPN-маршрутизацией, проверкой "белых списков" (White Lists) и отслеживанием статуса чебурнета.
 
