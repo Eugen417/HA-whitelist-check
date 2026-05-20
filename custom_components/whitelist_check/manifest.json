@@ -3,6 +3,7 @@
   "name": "White List Check",
   "version": "1.0.0",
   "documentation": "https://github.com/Eugen417/HA-whitelist-check",
+  "issue_tracker": "https://github.com/Eugen417/HA-whitelist-check/issues",
   "dependencies": [],
   "codeowners": ["@Eugen417"],
   "requirements": [],
