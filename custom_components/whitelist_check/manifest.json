@@ -1,0 +1,11 @@
+{
+  "domain": "whitelist_check",
+  "name": "White List Check",
+  "version": "1.0.0",
+  "documentation": "https://github.com/Eugen417/HA-whitelist-check",
+  "dependencies": [],
+  "codeowners": ["@Eugen417"],
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "local_polling"
+}
