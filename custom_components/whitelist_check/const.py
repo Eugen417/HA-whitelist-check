@@ -3,7 +3,9 @@ from datetime import timedelta
 DOMAIN = "whitelist_check"
 CONF_CUSTOM_HOSTS = "custom_hosts"
 
-UPDATE_INTERVAL = timedelta(minutes=5)
+# Новые константы для интервала
+CONF_UPDATE_INTERVAL = "update_interval"
+DEFAULT_UPDATE_INTERVAL = 300  # 5 минут по умолчанию
 
 # Базовый список критичных сервисов
 DEFAULT_HOSTS = {
@@ -25,22 +27,22 @@ DEFAULT_HOSTS = {
     "https://on.dcl.csa-iot.org": {
         "name": "CSA IoT DCL",
         "description": "Distributed Compliance Ledger (Matter/Zigbee)",
-        "enabled_default": False  # Будет отключен по умолчанию в UI
+        "enabled_default": False
     },
     "https://device-heartbeat-chn-17b3df92.linklinkiot.com": {
         "name": "LinkLink IoT",
         "description": "Облачные сервисы LinkLink",
-        "enabled_default": False  # Будет отключен по умолчанию в UI
+        "enabled_default": False
     },
     "https://openapi.tuyaeu.com": {
         "name": "Tuya Cloud (EU)",
         "description": "Облачные API Tuya (Европа)",
-        "enabled_default": False  # Будет отключен по умолчанию в UI
+        "enabled_default": False
     },
     "https://ota.matter.ikea.com": {
         "name": "IKEA Matter OTA",
         "description": "Сервер обновлений прошивок IKEA",
-        "enabled_default": False  # Будет отключен по умолчанию в UI
+        "enabled_default": False
     },
 
     # Глобальный интернет
