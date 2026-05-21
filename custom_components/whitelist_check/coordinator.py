@@ -1,22 +1,27 @@
 import asyncio
 import logging
 import async_timeout
+from datetime import timedelta
 from urllib.parse import urlparse
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN, UPDATE_INTERVAL, DEFAULT_HOSTS, CONF_CUSTOM_HOSTS
+# Обновляем импорты констант
+from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, DEFAULT_HOSTS, CONF_CUSTOM_HOSTS, CONF_UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
 class WhitelistUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
+        # Достаем интервал в секундах из настроек (или берем дефолтные 300)
+        interval_seconds = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=timedelta(seconds=interval_seconds),
         )
         self.entry = entry
         self.session = async_get_clientsession(hass)
