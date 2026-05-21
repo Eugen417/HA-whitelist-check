@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-# Обновляем импорты констант
 from .const import DOMAIN, DEFAULT_UPDATE_INTERVAL, DEFAULT_HOSTS, CONF_CUSTOM_HOSTS, CONF_UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,19 +36,18 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
         hosts = self.get_all_hosts()
         results = {}
 
-        tasks = [self._check_host(host, hosts[host]) for host in hosts.keys()]
-        statuses = await asyncio.gather(*tasks)
+        tasks = [self._check_host(host, config) for host, config in hosts.items()]
+        responses = await asyncio.gather(*tasks)
 
-        for host, status in zip(hosts.keys(), statuses):
-            results[host] = {
-                "config": hosts[host],
-                "is_online": status
-            }
+        for host, data in responses:
+            results[host] = data
         
         return results
 
-    async def _check_host(self, host: str, config: dict) -> bool:
+    async def _check_host(self, host: str, config: dict):
         method = config.get("method", "GET")
+        is_online = False
+        status_text = "Unknown"
 
         # Если выбран строгий PING
         if method == "PING":
@@ -60,61 +58,55 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
                     clean_host = parsed.hostname or host
                 except Exception:
                     pass
-            return await self._check_ping(clean_host)
-
+            is_online = await self._check_ping(clean_host)
+            status_text = "PING OK" if is_online else "PING Failed"
+            
         # Веб-запросы
-        if host.startswith("http://") or host.startswith("https://"):
-            return await self._check_http(host, method)
         else:
-            return await self._check_tcp(host)
+            url = host if host.startswith("http") else f"https://{host}"
+            is_online, status_text = await self._check_http(url, method)
 
-    async def _check_http(self, url: str, method: str) -> bool:
+        return host, {
+            "is_online": is_online,
+            "status_text": status_text,
+            "config": config
+        }
+
+    async def _check_http(self, url: str, method: str) -> tuple[bool, str]:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         }
         try:
             async with async_timeout.timeout(5):
                 async with self.session.request(method, url, allow_redirects=True, headers=headers) as response:
-                    # Если мы смогли получить ЛЮБОЙ ответ (даже 501 Not Implemented или 404),
-                    # значит маршрутизация, DNS и SSL работают отлично. Сервер на связи!
-                    return True
+                    status = response.status
+                    
+                    # Жесткие блокировки (провайдер или Cloudflare)
+                    if status in [403, 451]:
+                        return False, f"HTTP {status} (Blocked)"
+                    
+                    # Успех или технические ответы IoT-серверов
+                    return True, f"HTTP {status}"
         except Exception:
             pass
         
         # Фолбек: если веб-запрос упал (таймаут, сброс соединения), пробуем системный пинг
         try:
             parsed_url = urlparse(url)
-            host = parsed_url.hostname
-            if host:
-                return await self._check_ping(host)
+            host = parsed_url.hostname or url
+            clean_host = host.replace("https://", "").replace("http://", "").split("/")[0]
+            if await self._check_ping(clean_host):
+                return True, "PING OK (HTTP Failed)"
         except Exception:
             pass
-        return False
-
-    async def _check_tcp(self, host: str) -> bool:
-        if host in ["1.1.1.1", "8.8.8.8", "77.88.8.1", "77.88.8.8"]:
-            port = 53
-        elif host.endswith(".com") or host.endswith(".org") or host.endswith(".ru"):
-            port = 443
-        else:
-            port = 80
             
-        try:
-            future = asyncio.open_connection(host, port)
-            reader, writer = await asyncio.wait_for(future, timeout=3)
-            writer.close()
-            await writer.wait_closed()
-            return True
-        except Exception:
-            pass
-        
-        # Фолбек: если порт закрыт, пробуем системный пинг
-        return await self._check_ping(host)
+        return False, "Timeout / Offline"
 
     async def _check_ping(self, host: str) -> bool:
         try:
-            process = await asyncio.create_subprocess_exec(
-                "ping", "-c", "1", "-W", "2", host,
+            clean_host = host.replace("https://", "").replace("http://", "").split("/")[0]
+            process = await asyncio.create_subprocess_shell(
+                f"ping -c 1 -W 2 {clean_host}",
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL
             )
