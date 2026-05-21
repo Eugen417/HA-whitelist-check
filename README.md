@@ -1,7 +1,7 @@
 # 🌐 White List Check for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/v/release/Eugen417/HA-whitelist-check?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/Eugen417/HA-whitelist-check?style=for-the-badge&logo=github&cacheBust=1)](https://github.com/Eugen417/HA-whitelist-check/releases)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-compatible-blue.svg?style=for-the-badge&logo=home-assistant)](https://www.home-assistant.io/)
 [![GitHub Stars](https://img.shields.io/github/stars/Eugen417/HA-whitelist-check.svg?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/stargazers)
 [![License](https://img.shields.io/github/license/Eugen417/HA-whitelist-check.svg?style=for-the-badge)](https://github.com/Eugen417/HA-whitelist-check/blob/main/LICENSE)
