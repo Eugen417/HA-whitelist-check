@@ -75,12 +75,13 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with async_timeout.timeout(5):
                 async with self.session.request(method, url, allow_redirects=True, headers=headers) as response:
-                    if response.status < 500:
-                        return True
+                    # Если мы смогли получить ЛЮБОЙ ответ (даже 501 Not Implemented или 404),
+                    # значит маршрутизация, DNS и SSL работают отлично. Сервер на связи!
+                    return True
         except Exception:
             pass
         
-        # Фолбек: если веб-запрос упал, пробуем системный пинг
+        # Фолбек: если веб-запрос упал (таймаут, сброс соединения), пробуем системный пинг
         try:
             parsed_url = urlparse(url)
             host = parsed_url.hostname
