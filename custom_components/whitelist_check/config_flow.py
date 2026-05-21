@@ -2,7 +2,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 
-from .const import DOMAIN, CONF_CUSTOM_HOSTS
+from .const import DOMAIN, CONF_CUSTOM_HOSTS, CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
 
 class WhitelistConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -27,11 +27,9 @@ class WhitelistConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class WhitelistOptionsFlow(config_entries.OptionsFlow):
     def __init__(self):
-        """Инициализация временных переменных для хранения редактируемого хоста."""
         self.selected_host = None
 
     async def async_step_init(self, user_input=None):
-        """Главное меню управления хостами (Добавить / Изменить / Удалить)."""
         current_options = self.config_entry.options or {}
         custom_hosts = dict(current_options.get(CONF_CUSTOM_HOSTS, {}))
 
@@ -43,9 +41,11 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_select_edit_host()
             elif action == "remove":
                 return await self.async_step_remove_host()
+            elif action == "settings":
+                return await self.async_step_settings()
 
-        # Формируем динамическое меню в зависимости от наличия кастомных хостов
-        actions = {"add": "Добавить новый хост"}
+        # Добавили новый пункт настроек
+        actions = {"add": "Добавить новый хост", "settings": "Настройки интервала опроса"}
         if custom_hosts:
             actions["edit"] = "Изменить существующий хост"
             actions["remove"] = "Удалить существующий хост"
@@ -56,9 +56,24 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(step_id="init", data_schema=schema)
 
+    async def async_step_settings(self, user_input=None):
+        """Новое окно: Настройка глобального интервала."""
+        current_options = dict(self.config_entry.options)
+
+        if user_input is not None:
+            current_options[CONF_UPDATE_INTERVAL] = user_input[CONF_UPDATE_INTERVAL]
+            return self.async_create_entry(title="", data=current_options)
+
+        current_interval = current_options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
+        
+        schema = vol.Schema({
+            vol.Required(CONF_UPDATE_INTERVAL, default=current_interval): vol.All(int, vol.Range(min=10, max=86400))
+        })
+        
+        return self.async_show_form(step_id="settings", data_schema=schema)
+
     async def async_step_add_host(self, user_input=None):
-        """Форма добавления нового хоста."""
-        current_options = self.config_entry.options or {}
+        current_options = dict(self.config_entry.options)
         custom_hosts = dict(current_options.get(CONF_CUSTOM_HOSTS, {}))
 
         if user_input is not None:
@@ -68,8 +83,8 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
                 "method": user_input["method"],
                 "description": user_input.get("description", "")
             }
-            # Сохраняем обновленный словарь в конфигурацию интеграции
-            return self.async_create_entry(title="", data={CONF_CUSTOM_HOSTS: custom_hosts})
+            current_options[CONF_CUSTOM_HOSTS] = custom_hosts
+            return self.async_create_entry(title="", data=current_options)
 
         schema = vol.Schema({
             vol.Required("host"): str,
@@ -80,7 +95,6 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="add_host", data_schema=schema)
 
     async def async_step_select_edit_host(self, user_input=None):
-        """Шаг 1 редактирования: Выбор хоста из списка."""
         current_options = self.config_entry.options or {}
         custom_hosts = dict(current_options.get(CONF_CUSTOM_HOSTS, {}))
 
@@ -95,23 +109,20 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="select_edit_host", data_schema=schema)
 
     async def async_step_edit_host_details(self, user_input=None):
-        """Шаг 2 редактирования: Изменение полей выбранного хоста."""
-        current_options = self.config_entry.options or {}
+        current_options = dict(self.config_entry.options)
         custom_hosts = dict(current_options.get(CONF_CUSTOM_HOSTS, {}))
         
-        # Получаем текущие данные редактируемого хоста
         current_data = custom_hosts.get(self.selected_host, {})
 
         if user_input is not None:
-            # Перезаписываем данные для выбранного хоста
             custom_hosts[self.selected_host] = {
                 "name": user_input["name"].strip(),
                 "method": user_input["method"],
                 "description": user_input.get("description", "")
             }
-            return self.async_create_entry(title="", data={CONF_CUSTOM_HOSTS: custom_hosts})
+            current_options[CONF_CUSTOM_HOSTS] = custom_hosts
+            return self.async_create_entry(title="", data=current_options)
 
-        # Заполняем поля формы текущими значениями (suggested_value)
         schema = vol.Schema({
             vol.Required("name", default=current_data.get("name", "")): str,
             vol.Required("method", default=current_data.get("method", "GET")): vol.In(["GET", "POST", "HEAD", "PUT", "PING"]),
@@ -125,16 +136,15 @@ class WhitelistOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_remove_host(self, user_input=None):
-        """Форма удаления хоста."""
-        current_options = self.config_entry.options or {}
+        current_options = dict(self.config_entry.options)
         custom_hosts = dict(current_options.get(CONF_CUSTOM_HOSTS, {}))
 
         if user_input is not None:
             host_to_remove = user_input["host"]
             if host_to_remove in custom_hosts:
                 del custom_hosts[host_to_remove]
-            # Жестко сохраняем урезанный словарь, НА автоматически удалит сущность датчика!
-            return self.async_create_entry(title="", data={CONF_CUSTOM_HOSTS: custom_hosts})
+            current_options[CONF_CUSTOM_HOSTS] = custom_hosts
+            return self.async_create_entry(title="", data=current_options)
 
         hosts_list = {k: f"{v.get('name', 'Без имени')} ({k})" for k, v in custom_hosts.items()}
         schema = vol.Schema({
