@@ -42,9 +42,14 @@ class WhitelistUnifiedSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Главный статус на дашборде."""
-        host_data = self.coordinator.data.get(self.host, {})
+        host_data = self.coordinator.data.get(self.host) or {}
         is_online = host_data.get("is_online", False)
         status_text = host_data.get("status_text", "Ожидание...")
+        config = host_data.get("config") or {}
+        
+        # Если это статус платформы GitHub — выводим ответ API без изменений
+        if config.get("type") == "github_status":
+            return status_text
         
         if is_online:
             return "Подключено" 
@@ -53,16 +58,31 @@ class WhitelistUnifiedSensor(CoordinatorEntity, SensorEntity):
     @property
     def icon(self):
         """Динамическая иконка."""
-        host_data = self.coordinator.data.get(self.host, {})
-        if host_data.get("is_online", False):
+        host_data = self.coordinator.data.get(self.host) or {}
+        is_online = host_data.get("is_online", False)
+        status_text = host_data.get("status_text", "").lower()
+        config = host_data.get("config") or {}
+        
+        # Кастомная логика иконок для статуса GitHub
+        if config.get("type") == "github_status":
+            if not is_online and status_text in ["timeout / offline", "unknown"]:
+                return "mdi:github"
+            if "all systems operational" in status_text:
+                return "mdi:github"
+            if "minor" in status_text or "degraded" in status_text:
+                return "mdi:github-alert"
+            return "mdi:github-remove"
+
+        # Стандартные иконки для сетевых узлов
+        if is_online:
             return "mdi:check-network-outline"
         return "mdi:network-off-outline"
 
     @property
     def extra_state_attributes(self):
         """Детальная информация при клике."""
-        host_data = self.coordinator.data.get(self.host, {})
-        config = host_data.get("config", {}) if host_data else {}
+        host_data = self.coordinator.data.get(self.host) or {}
+        config = host_data.get("config") or {}
         return {
             "target_host": self.host,
             "method": config.get("method", "GET"),
