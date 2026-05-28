@@ -63,15 +63,15 @@ class WhitelistUnifiedSensor(CoordinatorEntity, SensorEntity):
         status_text = host_data.get("status_text", "").lower()
         config = host_data.get("config") or {}
         
-        # Кастомная логика иконок для статуса GitHub
+        # Исправленная логика иконок для статуса GitHub
         if config.get("type") == "github_status":
             if not is_online and status_text in ["timeout / offline", "unknown"]:
-                return "mdi:github"
+                return "mdi:cloud-off-outline"      # Полностью оффлайн
             if "all systems operational" in status_text:
-                return "mdi:github"
+                return "mdi:github"                 # Всё отлично работает
             if "minor" in status_text or "degraded" in status_text:
-                return "mdi:github-alert"
-            return "mdi:github-remove"
+                return "mdi:cloud-alert"            # Частичные проблемы (Actions/Webhooks)
+            return "mdi:alert-octagon-outline"      # Крупный глобальный сбой (Major Outage)
 
         # Стандартные иконки для сетевых узлов
         if is_online:
