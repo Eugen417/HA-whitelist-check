@@ -13,7 +13,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class WhitelistUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
-        # Достаем интервал в секундах из настроек (или берем дефолтные 300)
         interval_seconds = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
         
         super().__init__(
@@ -49,8 +48,12 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
         is_online = False
         status_text = "Unknown"
 
+        # Перехват специального API статуса GitHub
+        if config.get("type") == "github_status":
+            is_online, status_text = await self._check_github_status_api()
+        
         # Если выбран строгий PING
-        if method == "PING":
+        elif method == "PING":
             clean_host = host
             if "://" in host:
                 try:
@@ -61,7 +64,7 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
             is_online = await self._check_ping(clean_host)
             status_text = "PING OK" if is_online else "PING Failed"
             
-        # Веб-запросы
+        # Стандартные веб-запросы
         else:
             url = host if host.startswith("http") else f"https://{host}"
             is_online, status_text = await self._check_http(url, method)
@@ -72,6 +75,23 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
             "config": config
         }
 
+    async def _check_github_status_api(self) -> tuple[bool, str]:
+        """Запрос к официальному API статуса компонентов GitHub."""
+        url = "https://www.githubstatus.com/api/v2/summary.json"
+        try:
+            async with async_timeout.timeout(5):
+                async with self.session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        desc = data.get("status", {}).get("description", "Unknown")
+                        # Считаем систему условно онлайн, если получили ответ. 
+                        # Аптайм конкретных сервисов отработает через текст и иконку.
+                        return "all systems operational" in desc.lower(), desc
+                    return False, f"HTTP {response.status}"
+        except Exception:
+            pass
+        return False, "Timeout / Offline"
+
     async def _check_http(self, url: str, method: str) -> tuple[bool, str]:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -81,16 +101,14 @@ class WhitelistUpdateCoordinator(DataUpdateCoordinator):
                 async with self.session.request(method, url, allow_redirects=True, headers=headers) as response:
                     status = response.status
                     
-                    # Жесткие блокировки (провайдер или Cloudflare)
                     if status in [403, 451]:
                         return False, f"HTTP {status} (Blocked)"
                     
-                    # Успех или технические ответы IoT-серверов
                     return True, f"HTTP {status}"
         except Exception:
             pass
         
-        # Фолбек: если веб-запрос упал (таймаут, сброс соединения), пробуем системный пинг
+        # Фолбек на системный пинг
         try:
             parsed_url = urlparse(url)
             host = parsed_url.hostname or url
