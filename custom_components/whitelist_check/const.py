@@ -19,6 +19,13 @@ DEFAULT_HOSTS = {
         "description": "Проверка обновлений интеграций"
     },
     
+    # Официальный API статуса сервисов GitHub
+    "github_platform_status": {
+        "name": "GitHub Platform Status",
+        "description": "Официальный статус внутренних сервисов GitHub",
+        "type": "github_status"
+    },
+    
     # IoT и умный дом
     "https://developer.home-connect.com": {
         "name": "Home Connect API",
